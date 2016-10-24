@@ -4,6 +4,7 @@
 #include <time.h>
 #include <keyvalue.h>
 #include <fcntl.h>
+#include <linux/types.h>
 
 int main(int argc, char *argv[])
 {

@@ -1,5 +1,8 @@
 all: benchmark validate
 
+LD_LIBRARY_PATH = /usr/local/lib
+export LD_LIBRARY_PATH
+
 benchmark: benchmark.c
 	$(CC) -g -O0 benchmark.c -o benchmark -lckv
 validate: validate.c
