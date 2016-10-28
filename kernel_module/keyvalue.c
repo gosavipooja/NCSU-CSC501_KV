@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 //
-//   Author:  Hung-Wei Tseng
+//   Author:  Hung-Wei Tseng 
 //
 //   Description:
 //     Skeleton of KeyValue Pseudo Device
@@ -61,26 +61,26 @@ struct list_node *head = NULL;
 
 static long keyvalue_get(struct keyvalue_get __user *ukv)
 {
-	struct keyvalue_get * kv;
+	struct keyvalue_get * kv;								// Pointer to store get value
 	unsigned long e,m;
-	struct list_head * temp;
-	struct list_node * node;
-	int flag = 0;
-	if(head == NULL)
+	struct list_head * temp;								// Pointer to kernel linked list
+	struct list_node * node;								// Pointer to node
+	int flag = 0;											// Check for presence of key
+	if(head == NULL)										// If no key-value pair is present
 		return -1;
-    kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);
-	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_get));
-	if(m != 0)
+    kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);	// Allocate memory in kernel space
+	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_get));	// Copy from user to kernel space
+	if(m != 0)												// If not copied
 		return -1;
-	list_for_each(temp, &head->list)
+	list_for_each(temp, &head->list)						// Loop over all keyvalues
 	{
 		node = list_entry(temp, struct list_node, list);
-		if(node->key == kv->key)
+		if(node->key == kv->key)							// Check if required key is matched in linked list
 		{
 			flag = 1;
-			kv->size = &node->size;
+			kv->size = &node->size;							// Assign key's value 
 			kv->data = node->data;
-			e = copy_to_user(ukv,kv,sizeof(keyvalue_get));
+			e = copy_to_user(ukv,kv,sizeof(keyvalue_get));	// Copy to user space
 			if(e != 0)
 				return -1;
 			break;
@@ -93,52 +93,52 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 
 static long keyvalue_set(struct keyvalue_set __user *ukv)
 {
-	struct keyvalue_set * kv;
-	struct list_node * new;
+	struct keyvalue_set * kv;								// Pointer to store set value
+	struct list_node * new;									// Pointer to node			
 	unsigned long m;
-	if(ukv->size > sizeof(int)*1024)
+	if(ukv->size > sizeof(int)*1024)						// If size is greater than 4 KB
 		return -1;
-	if(head == NULL)
+	if(head == NULL)										// Create head of linked list if it is empty
 	{
 		head = kmalloc(sizeof(struct list_node),GFP_KERNEL);
 		//LIST_HEAD_INIT(&head->list);
 	}
-    kv = kmalloc(sizeof(struct keyvalue_set),GFP_KERNEL);
-	m = copy_from_user(kv,ukv,sizeof(keyvalue_set));
-	if(m != 0)
+    kv = kmalloc(sizeof(struct keyvalue_set),GFP_KERNEL);	// Allocate kernel space
+	m = copy_from_user(kv,ukv,sizeof(keyvalue_set));		// Copy from user to kernel space
+	if(m != 0)					
 		return -1;
 	new = kmalloc(sizeof(struct list_node),GFP_KERNEL);
-	new->key = kv->key;
+	new->key = kv->key;										// Set new key-value pair
 	new->size = kv->size;
 	new->data = kv->data;
-	list_add(&new->list,&head->list);
+	list_add(&new->list,&head->list);						// Add to linked list
     return transaction_id++;
 }
 
 static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 {
 	unsigned long e,m;
-	struct keyvalue_delete * kv;
-	struct list_head * temp;
-	struct list_node * node;
-	int flag = 0;
-    if(head == NULL)
+	struct keyvalue_delete * kv;							// Pointer to store set value
+	struct list_head * temp;								// Pointer to kernel linked list
+	struct list_node * node;								// Pointer to node
+	int flag = 0;											// Check for presence of key
+    if(head == NULL)										// If no key-value is present	
 		return -1;
-    kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);
-	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_delete));
+    kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);	// Allocate kernel memory
+	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_delete));	// Copy from user to kernel space
 	if(m != 0)
 		return -1;
-	list_for_each(temp, &head->list)
+	list_for_each(temp, &head->list)							// Iterate over linked list
 	{
-		node = list_entry(temp, struct list_node, list);
-		if(node->key == kv->key)
+		node = list_entry(temp, struct list_node, list);		
+		if(node->key == kv->key)								// Find matching key in list
 		{
 			flag = 1;
-			e = copy_to_user(ukv,kv,sizeof(struct keyvalue_delete));
+			e = copy_to_user(ukv,kv,sizeof(struct keyvalue_delete));	// Copy to user space
 			if(e != 0)
 				return -1;
-			list_del(&node->list);
-			kfree(node);
+			list_del(&node->list);										// Delete matched key value from linked list
+			kfree(node);												// Free space for deleted node
 			break;
 		}
 	}
