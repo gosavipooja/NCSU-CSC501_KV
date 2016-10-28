@@ -43,11 +43,15 @@
 #include <linux/poll.h>
 #include <linux/list.h>
 #include <linux/uaccess.h>
+#include <semaphore.h>
 
 unsigned transaction_id;
 /*static void free_callback(void *data)
 {
 }*/
+sem_t mutex;
+//mutex variable in sem needs to be initialized
+
 
 struct list_node
 {
@@ -72,6 +76,7 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_get));
 	if(m != 0)
 		return -1;
+	sem_wait(&mutex);
 	list_for_each(temp, &head->list)
 	{
 		node = list_entry(temp, struct list_node, list);
@@ -86,6 +91,7 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 			break;
 		}
 	}
+	sem_post(&mutex);
 	if(flag == 0)
 		return -1;
     return transaction_id++;
@@ -108,10 +114,12 @@ static long keyvalue_set(struct keyvalue_set __user *ukv)
 	if(m != 0)
 		return -1;
 	new = kmalloc(sizeof(struct list_node),GFP_KERNEL);
+	sem_wait(&mutex);
 	new->key = kv->key;
 	new->size = kv->size;
 	new->data = kv->data;
 	list_add(&new->list,&head->list);
+	sem_post(&mutex);
     return transaction_id++;
 }
 
@@ -128,6 +136,7 @@ static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_delete));
 	if(m != 0)
 		return -1;
+	sem_wait(&mutex);
 	list_for_each(temp, &head->list)
 	{
 		node = list_entry(temp, struct list_node, list);
@@ -142,6 +151,7 @@ static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 			break;
 		}
 	}
+	sem_post(&mutex);
 	if(flag == 0)
 		return -1;
     return transaction_id++;
