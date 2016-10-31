@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 //
-//   Author:  Hung-Wei Tseng 
+//   Author:  Hung-Wei Tseng
 //
 //   Description:
 //     Skeleton of KeyValue Pseudo Device
@@ -61,6 +61,7 @@ struct list_node *head = NULL;
 
 static long keyvalue_get(struct keyvalue_get __user *ukv)
 {
+	
 	struct keyvalue_get * kv;								// Pointer to store get value
 	unsigned long e,m;
 	struct list_head * temp;								// Pointer to kernel linked list
@@ -78,7 +79,7 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 		if(node->key == kv->key)							// Check if required key is matched in linked list
 		{
 			flag = 1;
-			kv->size = &node->size;							// Assign key's value 
+			kv->size = &node->size;							// Assign key's value
 			kv->data = node->data;
 			e = copy_to_user(ukv,kv,sizeof(keyvalue_get));	// Copy to user space
 			if(e != 0)
@@ -94,7 +95,7 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 static long keyvalue_set(struct keyvalue_set __user *ukv)
 {
 	struct keyvalue_set * kv;								// Pointer to store set value
-	struct list_node * new;									// Pointer to node			
+	struct list_node * new;									// Pointer to node
 	unsigned long m;
 	if(ukv->size > sizeof(int)*1024)						// If size is greater than 4 KB
 		return -1;
@@ -105,7 +106,7 @@ static long keyvalue_set(struct keyvalue_set __user *ukv)
 	}
     kv = kmalloc(sizeof(struct keyvalue_set),GFP_KERNEL);	// Allocate kernel space
 	m = copy_from_user(kv,ukv,sizeof(keyvalue_set));		// Copy from user to kernel space
-	if(m != 0)					
+	if(m != 0)
 		return -1;
 	new = kmalloc(sizeof(struct list_node),GFP_KERNEL);
 	new->key = kv->key;										// Set new key-value pair
@@ -122,7 +123,7 @@ static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 	struct list_head * temp;								// Pointer to kernel linked list
 	struct list_node * node;								// Pointer to node
 	int flag = 0;											// Check for presence of key
-    if(head == NULL)										// If no key-value is present	
+    if(head == NULL)										// If no key-value is present
 		return -1;
     kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);	// Allocate kernel memory
 	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_delete));	// Copy from user to kernel space
@@ -130,7 +131,7 @@ static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 		return -1;
 	list_for_each(temp, &head->list)							// Iterate over linked list
 	{
-		node = list_entry(temp, struct list_node, list);		
+		node = list_entry(temp, struct list_node, list);
 		if(node->key == kv->key)								// Find matching key in list
 		{
 			flag = 1;
