@@ -43,13 +43,15 @@
 #include <linux/poll.h>
 #include <linux/list.h>
 #include <linux/uaccess.h>
-#include <semaphore.h>
+#include <linux/semaphore.h>
 
 unsigned transaction_id;
 /*static void free_callback(void *data)
 {
 }*/
-sem_t mutex;
+
+struct semaphore mutex;
+extern static int mutex_init_check = 0;
 //mutex variable in sem needs to be initialized
 
 
@@ -64,20 +66,25 @@ struct list_node
 struct list_node *head = NULL;
 
 static long keyvalue_get(struct keyvalue_get __user *ukv)
-{
+{ 	
 	
 	struct keyvalue_get * kv;								// Pointer to store get value
 	unsigned long e,m;
 	struct list_head * temp;								// Pointer to kernel linked list
 	struct list_node * node;								// Pointer to node
 	int flag = 0;											// Check for presence of key
+	if(mutex_init_check == 0)
+	{
+		sema_init(&mutex,1);								// Initializing uninitialized semaphore
+		mutex_init_check = 1;
+	}
 	if(head == NULL)										// If no key-value pair is present
 		return -1;
     kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);	// Allocate memory in kernel space
 	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_get));	// Copy from user to kernel space
 	if(m != 0)												// If not copied
 		return -1;
-	sem_wait(&mutex);
+	down(&mutex);											// sem_wait - Acquire lock
 
 	list_for_each(temp, &head->list)						// Loop over all keyvalues
 
@@ -94,7 +101,7 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 			break;
 		}
 	}
-	sem_post(&mutex);
+	up(&mutex);												// sem_post - Release lock
 	if(flag == 0)
 		return -1;
     return transaction_id++;
@@ -102,9 +109,15 @@ static long keyvalue_get(struct keyvalue_get __user *ukv)
 
 static long keyvalue_set(struct keyvalue_set __user *ukv)
 {
+	
 	struct keyvalue_set * kv;								// Pointer to store set value
 	struct list_node * new;									// Pointer to node
 	unsigned long m;
+	if(mutex_init_check == 0)
+	{
+		sema_init(&mutex,1);								// Initializing uninitialized semaphore
+		mutex_init_check = 1;
+	}
 	if(ukv->size > sizeof(int)*1024)						// If size is greater than 4 KB
 		return -1;
 	if(head == NULL)										// Create head of linked list if it is empty
@@ -117,29 +130,35 @@ static long keyvalue_set(struct keyvalue_set __user *ukv)
 	if(m != 0)
 		return -1;
 	new = kmalloc(sizeof(struct list_node),GFP_KERNEL);
-	sem_wait(&mutex);
+	down(&mutex);											// sem_wait - Acquire lock
 	new->key = kv->key;										// Set new key-value pair
 	new->size = kv->size;
 	new->data = kv->data;
 	list_add(&new->list,&head->list);						// Add to linked list
-	sem_post(&mutex);
+	up(&mutex);												// sem_post - Release lock
     return transaction_id++;
 }
 
 static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 {
+	
 	unsigned long e,m;
 	struct keyvalue_delete * kv;							// Pointer to store set value
 	struct list_head * temp;								// Pointer to kernel linked list
 	struct list_node * node;								// Pointer to node
 	int flag = 0;											// Check for presence of key
+	if(mutex_init_check == 0)
+	{
+		sema_init(&mutex,1);								// Initializing uninitialized semaphore
+		mutex_init_check = 1;
+	}
     if(head == NULL)										// If no key-value is present
 		return -1;
     kv = kmalloc(sizeof(struct keyvalue_get),GFP_KERNEL);	// Allocate kernel memory
 	m = copy_from_user(kv,ukv,sizeof(struct keyvalue_delete));	// Copy from user to kernel space
 	if(m != 0)
 		return -1;
-	sem_wait(&mutex);
+	down(&mutex);												// sem_wait - Acquire lock
 	list_for_each(temp, &head->list)							// Iterate over linked list
 	{
 		node = list_entry(temp, struct list_node, list);
@@ -154,7 +173,7 @@ static long keyvalue_delete(struct keyvalue_delete __user *ukv)
 			break;
 		}
 	}
-	sem_post(&mutex);
+	up(&mutex);															// sem_post - Release lock	
 	if(flag == 0)
 		return -1;
     return transaction_id++;
